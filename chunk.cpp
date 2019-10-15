@@ -26,58 +26,109 @@ void error(const char *msg)
 
 struct details
 {
-	string username;
-	string password;
-	bool status;
+    string username;
+    string password;
+    bool status;
 
 };
 
 struct group
 {
-	int groupid;
-	string owner;
-	vector<string> members;
+    int groupid;
+    string owner;
+    vector<string> members;
 };
 
 struct entry{
-	string id;
-	struct details *point;
-	struct entry* next;
+    string id;
+    struct details *point;
+    struct entry* next;
 };
 
 struct entry *info;
 struct group *listg;
+struct fileinfo{
+    string filename;
+    string ipadd;
+    string prtadd;
+    string filesize;
+
+};
 
 struct group_info{
-	string group_id;
-	string owner;
-	vector<string> joinreq;
-	vector<string> members;
+    string group_id;
+    string owner;
+    vector<string> joinreq;
+    vector<string> members;
+    vector<fileinfo*> sharedfiles;
 };
+
 
 unordered_map<string,struct group_info*> groupdata;
 
-string listing(string msg)
+bool findinmap(string id)
 {
-	string t="Groups:";
-	for(auto i=groupdata.begin();i!=groupdata.end();i++)
-	{
-		t=t+i->first+":";
-	}
-	return t;
+    if(groupdata.find(id)==groupdata.end())
+     {
+        return true;
+     }
+     else
+     {
+        return false;
+     }
 }
 
+string listing(string msg)
+{
+    string t="Groups:";
+    for(auto i=groupdata.begin();i!=groupdata.end();i++)
+    {
+        t=t+i->first+":";
+    }
+    return t;
+}
+
+string shared(string msg)
+{
+int i=0;
+    int n=msg.length();
+     while(i<n&&msg[i]!=32)
+        ++i;
+    ++i;
+    string gid="";
+    
+      while(i<n&&msg[i]!=32)
+     {
+        gid+=msg[i];
+        ++i;
+     }
+     //check whether the particular group exists or not
+     if(!findinmap(gid))
+     {
+       string t="";
+       int k=groupdata[gid]->sharedfiles.size();
+       for(int j=0;j<k;j++)
+       {//check whether the particular user is online or not!
+        t=t+groupdata[gid]->sharedfiles[j]->filename+";"+groupdata[gid]->sharedfiles[j]->ipadd+";"+groupdata[gid]->sharedfiles[j]->prtadd+";"+groupdata[gid]->sharedfiles[j]->filesize+":";
+        }
+        return t;
+     }
+     else
+     {
+        return gid ;
+     }
+}
 string addgroup(string msg)
 {
 //extracting the data to be used
-	int i=0;
-	int n=msg.length();
-	 while(i<n&&msg[i]!=32)
+    int i=0;
+    int n=msg.length();
+     while(i<n&&msg[i]!=32)
         ++i;
     ++i;
     string gid="";
     string uss="";
-    ++i;
+    
       while(i<n&&msg[i]!=32)
      {
         gid+=msg[i];
@@ -89,17 +140,17 @@ string addgroup(string msg)
         uss+=msg[i];
         ++i;
      }
-     if(groupdata.find(gid)==groupdata.end())
+     if(findinmap(gid))
      {
-     	group_info *temp=new group_info();
-     	temp->group_id=gid;
-     	temp->owner=uss;
-     	groupdata[gid] = temp;
-     	return "Group Created";
+        group_info *temp=new group_info();
+        temp->group_id=gid;
+        temp->owner=uss;
+        groupdata[gid] = temp;
+        return "Group Created";
      }
      else
      {
-     	return "Group Already Exists";
+        return "Group Already Exists";
      }
 
 }
@@ -107,13 +158,13 @@ string addgroup(string msg)
 string joingroup(string msg)
 {
 int i=0;
-	int n=msg.length();
-	 while(i<n&&msg[i]!=32)
+    int n=msg.length();
+     while(i<n&&msg[i]!=32)
         ++i;
     ++i;
     string gid="";
     string uss="";
-    ++i;
+    
       while(i<n&&msg[i]!=32)
      {
         gid+=msg[i];
@@ -125,28 +176,28 @@ int i=0;
         uss+=msg[i];
         ++i;
      }
-      if(groupdata.find(gid)==groupdata.end())
+      if(findinmap(gid))
      {
-     	
-     	return "Group does not exist!";
+        
+        return "Group does not exist!";
      }
      else
      {
-     	groupdata[gid]->joinreq.push_back(uss);
-     	return "Group join request registered!";
+        groupdata[gid]->joinreq.push_back(uss);
+        return "Group join request registered!";
      }
 }
 
 string leaveg(string msg)
 {
-	int i=0;
-	int n=msg.length();
-	 while(i<n&&msg[i]!=32)
+    int i=0;
+    int n=msg.length();
+     while(i<n&&msg[i]!=32)
         ++i;
     ++i;
     string gid="";
     string uss="";
-    ++i;
+    
       while(i<n&&msg[i]!=32)
      {
         gid+=msg[i];
@@ -158,31 +209,31 @@ string leaveg(string msg)
         uss+=msg[i];
         ++i;
      }
-      if(groupdata.find(gid)==groupdata.end())
+      if(findinmap(gid))
      {
-     	
-     	return "Group does not exist!";
+        
+        return "Group does not exist!";
      }
      else
      {
-     	vector<string>::iterator position = find(groupdata[gid]->joinreq.begin(), groupdata[gid]->joinreq.end(),uss);
+        vector<string>::iterator position = find(groupdata[gid]->joinreq.begin(), groupdata[gid]->joinreq.end(),uss);
 if (position != groupdata[gid]->joinreq.end()) // == myVector.end() means the element was not found
     groupdata[gid]->joinreq.erase(position);
-     	return "Request Deleted!";
+        return "Request Deleted!";
      }
 
 }
 
 string list_req(string msg)
 {
-	int i=0;
-	int n=msg.length();
-	 while(i<n&&msg[i]!=32)
+    int i=0;
+    int n=msg.length();
+     while(i<n&&msg[i]!=32)
         ++i;
     ++i;
     string gid="";
     string uss="";
-    ++i;
+    
       while(i<n&&msg[i]!=32)
      {
         gid+=msg[i];
@@ -194,28 +245,91 @@ string list_req(string msg)
         uss+=msg[i];
         ++i;
      }
-      if(groupdata.find(gid)==groupdata.end())
+      if(findinmap(gid))
      {
-     	
-     	return "Group does not exist!";
+        
+        return "Group does not exist!";
      }
      else
      {
-     	string t="";
-     	int len=groupdata[gid]->joinreq.size();
-     	for(int i=0;i<len;i++)
-     		t=t+groupdata[gid]->joinreq[i]+":";
-     	return t;
+        string t="";
+        int len=groupdata[gid]->joinreq.size();
+        for(int i=0;i<len;i++)
+            t=t+groupdata[gid]->joinreq[i]+":";
+        return t;
      }
 }
+string uploader(string msg)
+{
+     int i=0;
+   int n=msg.length();
+    while(i<n&&msg[i]!=32)
+        ++i;
+     string filen="";
+     ++i;
+     while(i<n&&msg[i]!=32)
+     {
+        filen+=msg[i];
+        ++i;
+     }
+     string gid="";
+     ++i;
+     while(i<n&&msg[i]!=32)
+     {
+        gid+=msg[i];
+        ++i;
+     }
+     string ipad="";
+     ++i;
+        while(i<n&&msg[i]!=32)
+     {
+        ipad+=msg[i];
+        ++i;
+     }
+    string portadd="";
+    ++i;
+    while(i<n&&msg[i]!=32)
+    {
+        portadd+=msg[i];
+        ++i;
+    }
+    string sizeoffile="";
+    ++i;
+    while(i<n&&msg[i]!=32)
+    {
+        sizeoffile+=msg[i];
+        ++i;
+    }
+    //checking whether the particular group for which the request is sent exists or not
+     
+     if(!findinmap(gid))
+     {
+            struct fileinfo* temp =new fileinfo();
+        temp->filename=filen;
+        temp->ipadd=ipad;
+        temp->prtadd=portadd;
+        temp->filesize=sizeoffile;
+        groupdata[gid]->sharedfiles.push_back(temp);
+        return "Upload Successful!";
+        //return "a"+ggid+"a";
+     }
+     else
+     {
+        return "a"+gid+"a";
+     }
+
+
+}
+
+
 
 string acceptreq(string msg)
 {
-	int i=0;
-	int n=msg.length();
-	 while(i<n&&msg[i]!=32)
+    int i=0;
+    int n=msg.length();
+     while(i<n&&msg[i]!=32)
         ++i;
-    ++i;
+    
     string gid="";
     string uss="";
     ++i;
@@ -232,15 +346,16 @@ string acceptreq(string msg)
      }
       if(groupdata.find(gid)==groupdata.end())
      {
-     	
-     	return "Group does not exist!";
+        
+        return "Group does not exist!";
      }
      else
      {
      int len=groupdata[gid]->joinreq.size();
-     	for(int i=0;i<len;i++)
-     	groupdata[gid]->members.push_back(groupdata[gid]->joinreq[i]);
-     	groupdata[gid]->joinreq.clear();	
+        for(int i=0;i<len;i++)
+        groupdata[gid]->members.push_back(groupdata[gid]->joinreq[i]);
+        groupdata[gid]->joinreq.clear();    
+        return "Accepted";
      }
 }
 
@@ -425,7 +540,7 @@ string loggoff(string msg)
             }
             else
             {
-            	return "User not logged in! First Login!";
+                return "User not logged in! First Login!";
             }
             }
             else
@@ -435,6 +550,7 @@ string loggoff(string msg)
         }//else
 
 }
+
 
 
 string handlerequest(char *input)
@@ -459,27 +575,36 @@ string handlerequest(char *input)
   }
   if(comm=="create_group")
   {
-  	return addgroup(msg);
+    return addgroup(msg);
   }
+
   if(comm=="join_group")
   {
-  	return joingroup(msg);
+    return joingroup(msg);
   }
   if(comm=="leave_group")
   {
-  	return leaveg(msg);
+    return leaveg(msg);
   }
   if(comm=="list_requests")
   {
-  	return list_req(msg);
+    return list_req(msg);
   }
   if(comm=="accept_requests")
   {
-  	return acceptreq(msg);
+    return acceptreq(msg);
   }
   if(comm=="logout")
   {
-  	return loggoff(msg);
+    return loggoff(msg);
+  }
+  if(comm=="upload_file")
+  {
+    return uploader(msg);
+  }
+  if(comm=="list_files")
+  {
+    return shared(msg);
   }
   else
     return "No request matched";
@@ -513,7 +638,7 @@ void* func_accept(void * newsockfd)
 
 int main(int argc, char *argv[])
 {
-	 int sockfd, newsockfd, portno;
+     int sockfd, newsockfd, portno;
      socklen_t clilen;
      char buffer[256];//to store the msg
      struct sockaddr_in serv_addr, cli_addr;
@@ -525,7 +650,7 @@ int main(int argc, char *argv[])
      // create a socket
      // socket(int domain, int type, int protocol)
      
-     
+     cout<<"Server started"<<endl;
      sockfd =  socket(AF_INET, SOCK_STREAM, 0);
      if (sockfd < 0) 
         error("ERROR opening socket");
@@ -605,5 +730,5 @@ int main(int argc, char *argv[])
  close(newsockfd);
  close(sockfd);
     
-	return 0;
+    return 0;
 }
